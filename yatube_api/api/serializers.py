@@ -10,7 +10,12 @@ class PostSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
 
     class Meta:
-        fields = '__all__'
+        fields = ('id',
+                  'text',
+                  'pub_date',
+                  'author',
+                  'image',
+                  'group',)
         model = Post
 
 
@@ -20,7 +25,11 @@ class CommentSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = '__all__'
+        fields = ('id',
+                  'author',
+                  'post',
+                  'text',
+                  'created',)
         model = Comment
         read_only_fields = ('post', 'created')
 
@@ -42,10 +51,10 @@ class FollowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Follow
-        fields = '__all__'
+        fields = 'user', 'following'
 
-    def create(self, validated_data):
-        user = validated_data['user']
+    def validate(self, data):
+        user = self.root._context['request'].user
         try:
             following = User.objects.get(
                 username=self.initial_data['following']
@@ -68,5 +77,12 @@ class FollowSerializer(serializers.ModelSerializer):
                 'У Вас уже есть родписка на '
                 f'пользователя с username={following.username}', code=400
             )
+        return data
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        following = User.objects.get(
+            username=self.initial_data['following']
+        )
         obj = Follow.objects.create(user=user, following=following)
         return obj
